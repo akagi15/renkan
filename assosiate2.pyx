@@ -10,30 +10,6 @@ proc = 6
 
 #連関構造推計用プログラム
 
-#データの欠損を抜くためのインデックス抽出
-def index_list(data):
-    lis = data[0]
-    index = data[1]
-    a = [lis[i] for i in index]
-    return a 
-
-def multi_index_list(data_list, index): #並列処理
-    data = []
-    for i in data_list:
-        data.append([i,index]) 
-
-    p = Pool(proc) #最大プロセス数
-    result = p.map(index_list, data)
-    p.terminate()
-    p.join
-
-    del data
-
-    gc.collect()
-
-    return result
-
-
 #受注企業毎の取引品目及び取引額の組を返す
 def get_index_cd_trans(data):
     trans = [[[],[]] for i in range(len(data[3]))]
@@ -140,13 +116,15 @@ def make_data(data):
         if num == 0 or 4 or 8:
             print(i, '/', len(h_cd), '\r', end="") 
             sys.stdout.flush()
+        
+        
+        a = cd_trans_rate[z_cd_list.index(h_cd[i])][:]
+        b = Z_city[i]
+        c= H_city[i]
+        ind = str(z_ind[i]) ++ '-' ++ str(h_ind[i])
+        d = value[i]
+        g = goods[i]
         if h_cd[i] not in only_h_cd:
-            a = cd_trans_rate[z_cd_list.index(h_cd[i])][:]
-            b = Z_city[i]
-            c= H_city[i]
-            ind = [z_ind[i],h_ind[i]]
-            d = value[i]
-            g = goods[i]
             for j in range(len(a[0])):
                 out_line = []
                 out_line.append(b)
@@ -158,11 +136,12 @@ def make_data(data):
                 trans_city_value_goodsSet_rate.append(out_line)
         else:
             out_line = []
-            b = Z_city[i]
-            c = H_city[i]
             ind = [z_ind[i],h_ind[i]]
             out_line.append(b)
             out_line.append(c)
+            out_line.append(g)
+            out_line.append(0)
+            out_line.append(d)
             out_line.append(ind)
             only_h_trans.append(out_line)
     
@@ -197,149 +176,9 @@ def multi_make_data(h_cd, z_cd, goods, cd_trans_rate, Z_city, H_city, value, z_i
     return result
 
 
-def multi_exclude_not_sell_1(trans_city_value_goodsSet_rate, z_ind, h_ind ):
-    calc = trans_city_value_goodsSet_rate
-    result = []
-    only_h_trans = []
-    for i in calc:
-        result.extend(i[0])
-        only_h_trans.extend(i[1])
 
 
-    pair_ind_list = [[z_ind[i], h_ind[i]] for i in range(len(z_ind))]
-    
-    #同じ業種の組み合わせを除外する
-    delete = []
-    for i in range(len(pair_ind_list)):
-        if pair_ind_list.index( [pair_ind_list[i][0],pair_ind_list[i][1]]) != i and  [pair_ind_list[i][0],pair_ind_list[i][1]] == pair_ind_list[i]:
-            delete.append(i)
-    
-    delete.reverse()        
-    for i in delete:
-        pair_ind_list.pop(i)
-
-    pair_ind_list_str = [str(pair_ind_list[i]) for i in range(len(pair_ind_list))]
-    pair_ind_value = [[[],[]] for i in range(len(pair_ind_list))]
-
-    #受注していない発注企業対策
-    for ra in result:
-        index = pair_ind_list_str.index(str(ra[5]))
-        pair_ind_value[index][0].append([ra[2],ra[3]])
-        pair_ind_value[index][1].append(ra[4])
-
-    
-    for raw in result:
-        raw.pop(5)
- 
-    div_pair_ind_value = divide_lists(pair_ind_value,3)
-  
-    #pair_ind_value_rejected = []
-    #for pair in pair_ind_value:
-    #    pair_ind_value_rejected.append(set_pair_ind_value(pair))
-    
-    print('分割処理開始') 
-    p = Pool(3) 
-    pair_ind_value_rejected = p.map(set_pair_ind_value, div_pair_ind_value)
-    p.terminate()
-    p.join()
-
-    pair_ind_value_rejected_last = []
-    for i in pair_ind_value_rejected:
-        for j in i:
-            pair_ind_value_rejected_last.append(j[:])
-    
-    final_result =  [result,pair_ind_value_rejected_last, pair_ind_list,pair_ind_list_str,only_h_trans]
-    
-    del result,  pair_ind_value,pair_ind_value_rejected, pair_ind_value_rejected_last, pair_ind_list, pair_ind_list_str, only_h_trans
-    gc.collect()
-
-    return final_result
-    
-def set_pair_ind_value(pair_ind_value): 
-    p = pair_ind_value
-    num = 0
-    for x in pair_ind_value:
-        num += 1
-        print(num, '/', len(pair_ind_value), '\r', end="") 
-        sys.stdout.flush()
-        delete = []
-        
-        for y in range(len(x[0])):
-            index = x[0].index(x[0][y]) 
-            if index != y:
-                x[1][index] = (x[1][index] + x[1][y])/2
-                delete.append(y)
-
-        delete.reverse()
-
-        for i in delete:
-            x[0].pop(i)
-            x[1].pop(i)
-    
-    return p 
-
-
-def multi_exclude_not_sell_2(trans_exclude_not_sell1):
-   
-    result =    trans_exclude_not_sell1[0]
-    pair_ind_value =    trans_exclude_not_sell1[1]
-    pair_ind_list =    trans_exclude_not_sell1[2] 
-    pair_ind_list_str = trans_exclude_not_sell1[3]
-    only_h_trans = trans_exclude_not_sell1[4]
-    
-    
-    count = 0
-    for i in only_h_trans:
-        count += 1
-        print('非受注企業を処理中', count, len(only_h_trans), '\r', end="")
-        sys.stdout.flush()
-        if str(i[2]) in pair_ind_list_str:
-            same_ind_pair = pair_ind_value[pair_ind_list_str.index(str(i[2]))][:]
-            for j in range(len(same_ind_pair[0])):
-                out_line = []
-                out_line.append(i[0])
-                out_line.append(i[1])
-                out_line.append(same_ind_pair[0][j][0])
-                out_line.append(same_ind_pair[0][j][1])
-                out_line.append(same_ind_pair[1][j])
-                result.append(out_line)
-    
-    del pair_ind_list, pair_ind_value, pair_ind_list_str, only_h_trans
-    gc.collect()
-
-    return result
-
-def exclude_same_record(trans_exclude_not_sell):
-    #重複しているレコードをまとめる
-    result = trans_exclude_not_sell
-    record_set = []
-    out_line = []
-    for res in result:
-        out_line = str([res[0],res[1],res[2],res[3]])
-        record_set.append(out_line)
-      
-    record_set = list(set(record_set))
-    final_result = [[0,0,0,0,0] for i in range(len(record_set))]
-    count = 0
-    for res in result:
-        count += 1
-        print('重複コードを統合中', count, len(result), '\r', end="")
-        sys.stdout.flush()
-        out_line = str([res[0],res[1],res[2],res[3]])
-        final_result[record_set.index(out_line)][0] = res[0]
-        final_result[record_set.index(out_line)][1] = res[1]
-        final_result[record_set.index(out_line)][2] = res[2]
-        final_result[record_set.index(out_line)][3] = res[3]
-        final_result[record_set.index(out_line)][4] += res[4]
- 
-    del result, record_set, out_line
-    gc.collect()
-        
-    return final_result
-
-
-
-def divide_lists(lis,num):
+def divide_lists(lis,num): #並列処理のproc数に合わせて分割する関数
     result = []
     length = len(lis)
     sep = length // num
