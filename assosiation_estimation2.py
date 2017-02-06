@@ -91,7 +91,7 @@ same_input_total = 0
 業種が同じ総額,産出商品の組み合わせ数を記録し業種が異なった場合に総額から割合を出す
 業種ー投入商品ー産出商品が同じ限り,組み合わせ数を記録し,異なった場合に平均を出す
 """
-
+print('業種組み合わせ作成中')
 for num in  range(len(output_data['Ind_pair'])):
     ind_pair = output_data['Ind_pair'][num]
     input_ind = output_data['Input_industory'][num]
@@ -177,7 +177,7 @@ del temp_ind_pair, temp_input_ind, temp_output_ind, temp_value
 gc.collect()
 
 #受注していない発注企業分の取引データを作成する
-
+print('非受注企業の取引データ作成中')
 only_h_trans_value = []
 for i in range(len(only_h_trans)):
     temp_input_area = only_h_trans[i][0]
@@ -208,6 +208,7 @@ del only_h_trans_value_data
 gc.collect()
 
 #重複した組み合わせを削除
+print('重複組合せの統合中')
 output_data = output_data.sort_values(by = ["Input_area","Output_area","Input_industory","Output_industry"],ascending=True)
 output_data = output_data.reset_index(drop=True)
 
