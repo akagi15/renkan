@@ -7,6 +7,9 @@ import assosiate2
 from multiprocessing import Pool
 from multiprocessing import Process
 import gc
+import time
+
+start = time.time()
 
 print('now, data importintg....')
 #data = pd.read_csv('../test.csv') #テスト用
@@ -51,7 +54,7 @@ trans_city_value_goodsSet_rate = assosiate2.multi_make_data(h_cd, z_cd, goods, c
 del cd_trans_rate, h_cd, z_cd, goods, Z_city, H_city, value
 gc.collect()
 
-only_h_trans = trans_city_value_goodsSet_rate[1] #受注していない発注企業
+only_h_trans = trans_city_value_goodsSet_rate[1][:] #受注していない発注企業
 
 #受注していない企業を除いた取引のまとめのみを出力
 print('データ型を変更中...')
@@ -63,12 +66,15 @@ del trans_city_value_goodsSet_rate
 gc.collect()
 
 output_data = pd.DataFrame(output, columns = columns)
-
+only_h_trans_data = pd.DataFrame(only_h_trans,columns = columns)
 del output
-gc.collect()
+gc.collect ()
+
+
 
 print('temp.csvを出力中....')
 output_data.to_csv('../renkan_temp.csv')
+only_h_trans_data.to_csv('../only_h_trans_temp.csv')
 
 #受注していない企業対策
 #--業種の組み合わせ毎の品目の組み合わせ毎の取引額の平均割合を作成する
@@ -244,4 +250,5 @@ print('output.csvを出力中....')
 output_data.to_csv('../output.csv')
 temp_length = len(list(output_data["Input_area"]))
 
-print(str(temp_length) + 'records, completed...!!')
+elapsed_time = str(time.time() - start)
+print(str(temp_length) + 'records, completed...!! it takes ' + elapsed_time + '[sec]' )
