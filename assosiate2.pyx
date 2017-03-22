@@ -121,7 +121,7 @@ def make_data(data):
         a = cd_trans_rate[z_cd_list.index(h_cd[i])][:]
         b = Z_city[i]
         c= H_city[i]
-        ind = str(z_ind[i]) ++ '-' ++ str(h_ind[i])
+        ind = str(z_ind[i]) + '-' + str(h_ind[i])
         d = value[i]
         g = goods[i]
         if h_cd[i] not in only_h_cd:
