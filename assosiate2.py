@@ -123,7 +123,7 @@ def make_data(data):
         
         b = Z_city[i]
         c= H_city[i]
-        ind = str(z_ind[i]) +'-' + str(h_ind[i])
+        ind = str(z_ind[i]) + '-' + str(h_ind[i])
         d = value[i]
         g = goods[i]
         if h_cd[i] not in only_h_cd:

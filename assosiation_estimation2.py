@@ -1,18 +1,42 @@
 # coding: utf-8
 #連関構造推計用プログラム
 
+from __future__ import print_function
+from multiprocessing import Pool
+from multiprocessing import Process
 import pandas as pd
 import csv
 import assosiate2
-from multiprocessing import Pool
-from multiprocessing import Process
 import gc
-import time
+import sys
 import numpy as np
 from numba.decorators import jit
-
-
+import time
 start = time.time()
+
+proc = 6 #並列計算のproc数
+
+
+def divide_lists(lis,num): #並列処理のproc数に合わせて分割する関数
+    result = []
+    length = len(lis)
+    sep = length // num
+    div = []
+    for i in range(num):
+        if i == 0:
+            div = lis[:sep +1 ]
+            result.append(div)
+        elif i == proc - 1:
+            div = lis[sep*i + 1:]
+            result.append(div)
+        else:
+            div = lis[sep*i + 1 : sep*(i + 1) +1]
+            result.append(div)
+    
+    del div
+    gc.collect()
+        
+    return result
 
 print('now, data importintg....')
 #data = pd.read_csv('../test.csv') #テスト用
@@ -184,43 +208,54 @@ for num in  range(len(output_data['Ind_pair'])):
 del temp_ind_pair, temp_input_ind, temp_output_ind, temp_value
 gc.collect()
 
+
+
 #受注していない発注企業分の取引データを作成する
 print('非受注企業の取引データ作成中')
-
-print(only_h_trans,ind_pair_goods_pair_value_list)
-
 @jit
-def make_only_h_trans_value(lis1,lis2):
-    only_h_trans = lis1[:]
-    ind_pair_goods_pair_value_list = lis2[:]
+def make_only_h_tarans_value(data): #非受注企業データ作成並列処理用関数
     only_h_trans_value = []
+    OHT = data[0][:] #only_h_trans
+    IPGPVL = data[1][:] # ind_pair_goods_pair_value_list 
+    for i in OHT:
+        temp_input_area = i[0]
+        temp_output_area = i[1]
+        temp_input_ind = i[2]
+        temp_value = i[4]
+        temp_ind_pair = i[5]
 
-    for i in range(len(only_h_trans)):
-        temp_input_area = only_h_trans[i][0]
-        temp_output_area = only_h_trans[i][1]
-        temp_input_ind = only_h_trans[i][2]
-        temp_value = only_h_trans[i][4]
-        temp_ind_pair = only_h_trans[i][5]
-
-        for j in range(len(ind_pair_goods_pair_value_list)):
+        for j in IPGPVL:
             out_line = []
-            if temp_ind_pair == ind_pair_goods_pair_value_list[j][0]:
-                value = temp_value * ind_pair_goods_pair_value_list[j][3] 
-                temp_output_ind = ind_pair_goods_pair_value_list[j][2]
+            if temp_ind_pair == j[0]:
+                value = temp_value * j[3] 
+                temp_output_ind = j[2]
                 out_line = [temp_input_area,temp_output_area,temp_input_ind,temp_output_ind,value,temp_ind_pair]
                 only_h_trans_value.append(out_line)
 
+    del OHT, IPGPVL
+    gc.collect()
+
     return only_h_trans_value
 
-only_h_trans_value = make_only_h_trans_value(only_h_trans,ind_pair_goods_pair_value_list)
+#以下並列処理
+div_only_h_trans = divide_lists(only_h_trans,proc)
+data = [[i,ind_pair_goods_pair_value_list] for i in div_only_h_trans ]
+p = Pool(proc)
+temp_result = p.map(make_only_h_tarans_value, data)
+p.terminate()
+p.join()
 
-del only_h_trans, ind_pair_goods_pair_value_list
+only_h_trans_value = []
+#並列処理したものを展開
+for i in temp_result:
+    only_h_trans_value.extend(i)
+
+del temp_result, data
 gc.collect()
-
 
 only_h_trans_value_data = pd.DataFrame(only_h_trans_value, columns = columns)
 
-del only_h_trans_value 
+del only_h_trans_value
 gc.collect()
 
 output_data = output_data.append(only_h_trans_value_data)
@@ -241,8 +276,11 @@ tb = temp_Output_area = output_data["Output_area"][0]
 tc = temp_Input_industory = output_data["Input_industory"][0]
 td = temp_Output_industory = output_data["Output_industry"][0]
 count = 0
+temp_length = len(list(output_data["Input_area"]))
 
-for  num  in range(len(list(output_data["Input_area"]))):
+for  num  in range(temp_length):
+    print('now integrating same values...',num,'/', temp_length,'\r', end='')
+    sys.stdout.flush()
     if num != 0:
         tA = output_data["Input_area"][num]
         tB = output_data["Output_area"][num]
