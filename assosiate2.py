@@ -5,12 +5,16 @@ from multiprocessing import Pool
 from multiprocessing import Process
 import sys
 import gc
+import numpy as np
+from numba.decorators import jit 
 
 proc = 6 
 
 #連関構造推計用プログラム
 
 #受注企業毎の取引品目及び取引額の組を返す
+
+
 def get_index_cd_trans(data):
     trans = [[[],[]] for i in range(len(data[3]))]
     z_cd = data[0]
@@ -136,7 +140,7 @@ def make_data(data):
                 trans_city_value_goodsSet_rate.append(out_line)
         else:
             out_line = []
-            ind = [z_ind[i],h_ind[i]]
+            ind = str(z_ind[i]) + '-' + str(h_ind[i])
             out_line.append(b)
             out_line.append(c)
             out_line.append(g)

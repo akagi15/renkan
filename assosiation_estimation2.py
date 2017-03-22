@@ -13,7 +13,7 @@ start = time.time()
 
 print('now, data importintg....')
 #data = pd.read_csv('../test.csv') #テスト用
-data = pd.read_csv('../2016-10-12TRD2011TSCA_weight_fitted.csv')
+data = pd.read_csv('test.csv')
 data = data.loc[0:1000,['new_HNMKM_KJ','hc_j5_cd','jc_j5_cd','weight_fitted','HC_KG_CD','JC_KG_CD','hc_KG_SGY_CD','jc_KG_SGY_CD']]
 #欠損値の除去
 data = data.dropna()
@@ -71,7 +71,6 @@ del output
 gc.collect ()
 
 
-
 print('temp.csvを出力中....')
 output_data.to_csv('../renkan_temp.csv')
 only_h_trans_data.to_csv('../only_h_trans_temp.csv')
@@ -104,7 +103,7 @@ for num in  range(len(output_data['Ind_pair'])):
     output_ind = output_data['Output_industry'][num]
     value = output_data['Value'][num]
     out_line = [] 
-
+    
     if ind_pair != temp_ind_pair:
         out_line.append(ind_pair)
         out_line.append(input_ind)
@@ -212,6 +211,9 @@ output_data = output_data.append(only_h_trans_value_data)
 
 del only_h_trans_value_data
 gc.collect()
+
+
+print(len(output_data))
 
 #重複した組み合わせを削除
 print('重複組合せの統合中')
