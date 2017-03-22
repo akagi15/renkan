@@ -5,12 +5,16 @@ from multiprocessing import Pool
 from multiprocessing import Process
 import sys
 import gc
+import numpy as np
+from numba.decorators import jit 
 
 proc = 6 
 
 #連関構造推計用プログラム
 
 #受注企業毎の取引品目及び取引額の組を返す
+
+
 def get_index_cd_trans(data):
     trans = [[[],[]] for i in range(len(data[3]))]
     z_cd = data[0]
@@ -87,14 +91,14 @@ def multi_get_rate(cd_trans):
     for i in range(len(cd_trans)):
         data.append([cd_trans[i],i])
     
-    results = p.map(get_rate,data)
+    result = p.map(get_rate,data)
     p.terminate()
     p.join()
 
     del data
     gc.collect()
         
-    return results
+    return result
 
 #各取引毎のデータを作成
 def make_data(data):
@@ -118,13 +122,13 @@ def make_data(data):
             sys.stdout.flush()
         
         
-        a = cd_trans_rate[z_cd_list.index(h_cd[i])][:]
         b = Z_city[i]
         c= H_city[i]
         ind = str(z_ind[i]) + '-' + str(h_ind[i])
         d = value[i]
         g = goods[i]
         if h_cd[i] not in only_h_cd:
+            a = cd_trans_rate[z_cd_list.index(h_cd[i])][:]
             for j in range(len(a[0])):
                 out_line = []
                 out_line.append(b)
@@ -136,7 +140,7 @@ def make_data(data):
                 trans_city_value_goodsSet_rate.append(out_line)
         else:
             out_line = []
-            ind = [z_ind[i],h_ind[i]]
+            ind = str(z_ind[i]) + '-' + str(h_ind[i])
             out_line.append(b)
             out_line.append(c)
             out_line.append(g)
@@ -170,10 +174,17 @@ def multi_make_data(h_cd, z_cd, goods, cd_trans_rate, Z_city, H_city, value, z_i
     p.terminate()
     p.join()
 
-    del data, a, cd_list, div_h_cd, div_z_cd, div_Z_city, div_H_city, div_value, div_goods, div_z_ind, div_h_ind
+    trans_city_value_goodsSet_rate = []
+    only_h_trans = []
+    for res in result:
+        trans_city_value_goodsSet_rate.extend(res[0])
+        only_h_trans.extend(res[1])
+    
+        
+    del data, a, cd_list, div_h_cd, div_z_cd, div_Z_city, div_H_city, div_value, div_goods, div_z_ind, div_h_ind,result
     gc.collect()
 
-    return result
+    return [trans_city_value_goodsSet_rate,only_h_trans]
 
 
 

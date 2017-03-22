@@ -8,6 +8,7 @@ import pandas as pd
 import csv
 import assosiate2
 import gc
+<<<<<<< HEAD
 import sys
 import numpy as np
 from numba.decorators import jit
@@ -36,6 +37,11 @@ def divide_lists(lis,num): #並列処理のproc数に合わせて分割する関
     gc.collect()
         
     return result
+=======
+import time
+
+start = time.time()
+>>>>>>> 1b8b0a7a37dcfac5d1a99ec396a623f77acc6c8d
 
 print('now, data importintg....')
 #data = pd.read_csv('../test.csv') #テスト用
@@ -80,7 +86,7 @@ trans_city_value_goodsSet_rate = assosiate2.multi_make_data(h_cd, z_cd, goods, c
 del cd_trans_rate, h_cd, z_cd, goods, Z_city, H_city, value
 gc.collect()
 
-only_h_trans = trans_city_value_goodsSet_rate[1] #受注していない発注企業
+only_h_trans = trans_city_value_goodsSet_rate[1][:] #受注していない発注企業
 
 #受注していない企業を除いた取引のまとめのみを出力
 print('データ型を変更中...')
@@ -92,12 +98,14 @@ del trans_city_value_goodsSet_rate
 gc.collect()
 
 output_data = pd.DataFrame(output, columns = columns)
-
+only_h_trans_data = pd.DataFrame(only_h_trans,columns = columns)
 del output
-gc.collect()
+gc.collect ()
+
 
 print('temp.csvを出力中....')
 output_data.to_csv('../renkan_temp.csv')
+only_h_trans_data.to_csv('../only_h_trans_temp.csv')
 
 #受注していない企業対策
 #--業種の組み合わせ毎の品目の組み合わせ毎の取引額の平均割合を作成する
@@ -127,7 +135,7 @@ for num in  range(len(output_data['Ind_pair'])):
     output_ind = output_data['Output_industry'][num]
     value = output_data['Value'][num]
     out_line = [] 
-
+    
     if ind_pair != temp_ind_pair:
         out_line.append(ind_pair)
         out_line.append(input_ind)
@@ -262,6 +270,9 @@ output_data = output_data.append(only_h_trans_value_data)
 del only_h_trans_value_data
 gc.collect()
 
+
+print(len(output_data))
+
 #重複した組み合わせを削除
 print('重複組合せの統合中')
 output_data = output_data.sort_values(by = ["Input_area","Output_area","Input_industory","Output_industry"],ascending=True)
@@ -302,8 +313,13 @@ print('output.csvを出力中....')
 output_data.to_csv('../output.csv')
 temp_length = len(list(output_data["Input_area"]))
 
+<<<<<<< HEAD
 print(str(temp_length) + 'records, completed...!!')
 
 
 
 
+=======
+elapsed_time = str(time.time() - start)
+print(str(temp_length) + 'records, completed...!! it takes ' + elapsed_time + '[sec]' )
+>>>>>>> 1b8b0a7a37dcfac5d1a99ec396a623f77acc6c8d
