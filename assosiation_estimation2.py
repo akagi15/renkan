@@ -8,6 +8,9 @@ from multiprocessing import Pool
 from multiprocessing import Process
 import gc
 import time
+import numpy as np
+from numba.decorators import jit
+
 
 start = time.time()
 
@@ -183,24 +186,37 @@ gc.collect()
 
 #受注していない発注企業分の取引データを作成する
 print('非受注企業の取引データ作成中')
-only_h_trans_value = []
-for i in range(len(only_h_trans)):
-    temp_input_area = only_h_trans[i][0]
-    temp_output_area = only_h_trans[i][1]
-    temp_input_ind = only_h_trans[i][2]
-    temp_value = only_h_trans[i][4]
-    temp_ind_pair = only_h_trans[i][5]
 
-    for j in range(len(ind_pair_goods_pair_value_list)):
-        out_line = []
-        if temp_ind_pair == ind_pair_goods_pair_value_list[j][0]:
-            value = temp_value * ind_pair_goods_pair_value_list[j][3] 
-            temp_output_ind = ind_pair_goods_pair_value_list[j][2]
-            out_line = [temp_input_area,temp_output_area,temp_input_ind,temp_output_ind,value,temp_ind_pair]
-            only_h_trans_value.append(out_line)
+print(only_h_trans,ind_pair_goods_pair_value_list)
+
+@jit
+def make_only_h_trans_value(lis1,lis2):
+    only_h_trans = lis1[:]
+    ind_pair_goods_pair_value_list = lis2[:]
+    only_h_trans_value = []
+
+    for i in range(len(only_h_trans)):
+        temp_input_area = only_h_trans[i][0]
+        temp_output_area = only_h_trans[i][1]
+        temp_input_ind = only_h_trans[i][2]
+        temp_value = only_h_trans[i][4]
+        temp_ind_pair = only_h_trans[i][5]
+
+        for j in range(len(ind_pair_goods_pair_value_list)):
+            out_line = []
+            if temp_ind_pair == ind_pair_goods_pair_value_list[j][0]:
+                value = temp_value * ind_pair_goods_pair_value_list[j][3] 
+                temp_output_ind = ind_pair_goods_pair_value_list[j][2]
+                out_line = [temp_input_area,temp_output_area,temp_input_ind,temp_output_ind,value,temp_ind_pair]
+                only_h_trans_value.append(out_line)
+
+    return only_h_trans_value
+
+only_h_trans_value = make_only_h_trans_value(only_h_trans,ind_pair_goods_pair_value_list)
 
 del only_h_trans, ind_pair_goods_pair_value_list
 gc.collect()
+
 
 only_h_trans_value_data = pd.DataFrame(only_h_trans_value, columns = columns)
 

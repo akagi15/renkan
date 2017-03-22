@@ -14,7 +14,6 @@ proc = 6
 
 #受注企業毎の取引品目及び取引額の組を返す
 
-
 def get_index_cd_trans(data):
     trans = [[[],[]] for i in range(len(data[3]))]
     z_cd = data[0]
