@@ -16,28 +16,6 @@ start = time.time()
 
 proc = 6 #並列計算のproc数
 
-
-def divide_lists(lis,num): #並列処理のproc数に合わせて分割する関数
-    result = []
-    length = len(lis)
-    sep = length // num
-    div = []
-    for i in range(num):
-        if i == 0:
-            div = lis[:sep +1 ]
-            result.append(div)
-        elif i == proc - 1:
-            div = lis[sep*i + 1:]
-            result.append(div)
-        else:
-            div = lis[sep*i + 1 : sep*(i + 1) +1]
-            result.append(div)
-    
-    del div
-    gc.collect()
-        
-    return result
-
 print('now, data importintg....')
 #data = pd.read_csv('../test.csv') #テスト用
 data = pd.read_csv('test.csv')
@@ -108,150 +86,12 @@ only_h_trans_data.to_csv('../only_h_trans_temp.csv')
 output_data = output_data.sort_values(by = ["Ind_pair","Input_industory","Output_industry"],ascending=True)
 output_data = output_data.reset_index(drop=True)
 
-temp_ind_pair = output_data['Ind_pair'][0]
-temp_input_ind = output_data['Input_industory'][0]
-temp_output_ind = output_data['Output_industry'][0]
-temp_value = output_data['Value'][0]
-ind_pair_goods_pair_value_list = [[temp_ind_pair,temp_input_ind,temp_output_ind,temp_value,1]] #[ind_pair,品目,品目,額] 
-out_line_num = 0 #ind_pair_goods_pair_value_list の桁数
-same_input_count = 1
-same_input_total = 0
-
-
-"""
-業種組み合わせ,投入商品,産出商品,の順で異なった場合に行が変わる
-業種が同じ総額,産出商品の組み合わせ数を記録し業種が異なった場合に総額から割合を出す
-業種ー投入商品ー産出商品が同じ限り,組み合わせ数を記録し,異なった場合に平均を出す
-"""
 print('業種組み合わせ作成中')
-for num in  range(len(output_data['Ind_pair'])):
-    ind_pair = output_data['Ind_pair'][num]
-    input_ind = output_data['Input_industory'][num]
-    output_ind = output_data['Output_industry'][num]
-    value = output_data['Value'][num]
-    out_line = [] 
-    
-    if ind_pair != temp_ind_pair:
-        out_line.append(ind_pair)
-        out_line.append(input_ind)
-        out_line.append(output_ind)
-        out_line.append(value)
-        out_line.append(1)
-        ind_pair_goods_pair_value_list.append(out_line)
-        ind_pair_goods_pair_value_list[out_line_num][3] /= ind_pair_goods_pair_value_list[out_line_num][4] 
-
-        
-
-        for i  in range(same_input_count):
-            if same_input_total == 0:
-                ind_pair_goods_pair_value_list[out_line_num - i][3] = 1
-            else:
-                ind_pair_goods_pair_value_list[out_line_num - i][3] /= same_input_total
-        
-        out_line_num += 1 
-        same_input_count = 1
-        same_input_total = value
-
-    else:
-        if input_ind != temp_input_ind:
-            out_line.append(ind_pair)
-            out_line.append(input_ind)
-            out_line.append(output_ind)
-            out_line.append(value)
-            out_line.append(1)
-            ind_pair_goods_pair_value_list.append(out_line)
-            ind_pair_goods_pair_value_list[out_line_num][3] /= ind_pair_goods_pair_value_list[out_line_num][4] 
-            out_line_num += 1
-
-            same_input_total += value
-            same_input_count += 1
-            
-
-        elif input_ind == temp_input_ind:
-
-            if output_ind != temp_output_ind:
-                out_line.append(ind_pair)
-                out_line.append(input_ind)
-                out_line.append(output_ind)
-                out_line.append(value)
-                out_line.append(1)
-                ind_pair_goods_pair_value_list.append(out_line)
-                ind_pair_goods_pair_value_list[out_line_num][3] /= ind_pair_goods_pair_value_list[out_line_num][4] 
-
-                same_input_total += value
-                same_input_count +=1
-                out_line_num += 1
-
-            elif output_ind == temp_output_ind:
-                ind_pair_goods_pair_value_list[out_line_num][3] += value
-                ind_pair_goods_pair_value_list[out_line_num][4] += 1
-                same_input_total += value 
-
-        #最後のデータの場合にvalueを割っておく
-        if num == len(list(output_data['Ind_pair'])) - 1:
-            ind_pair_goods_pair_value_list[out_line_num][3] /= ind_pair_goods_pair_value_list[out_line_num][4] 
-
-            same_input_count += 1
-            for i in range(same_input_count):
-                if same_input_total == 0:
-                    ind_pair_goods_pair_value_list[out_line_num - i][3] = 1
-                else:
-                    ind_pair_goods_pair_value_list[out_line_num - i][3] /= same_input_total
-                        
-
-             
-    temp_ind_pair = ind_pair
-    temp_output_ind = output_ind
-    temp_input_ind = input_ind
-   
-
-del temp_ind_pair, temp_input_ind, temp_output_ind, temp_value
-gc.collect()
-
-
+ind_pair_goods_pair_value_list = assosiate2.make_ind_pair_goods_pair_value_list(output_data)
 
 #受注していない発注企業分の取引データを作成する
 print('非受注企業の取引データ作成中')
-@jit
-def make_only_h_tarans_value(data): #非受注企業データ作成並列処理用関数
-    only_h_trans_value = []
-    OHT = data[0][:] #only_h_trans
-    IPGPVL = data[1][:] # ind_pair_goods_pair_value_list 
-    for i in OHT:
-        temp_input_area = i[0]
-        temp_output_area = i[1]
-        temp_input_ind = i[2]
-        temp_value = i[4]
-        temp_ind_pair = i[5]
-
-        for j in IPGPVL:
-            out_line = []
-            if temp_ind_pair == j[0]:
-                value = temp_value * j[3] 
-                temp_output_ind = j[2]
-                out_line = [temp_input_area,temp_output_area,temp_input_ind,temp_output_ind,value,temp_ind_pair]
-                only_h_trans_value.append(out_line)
-
-    del OHT, IPGPVL
-    gc.collect()
-
-    return only_h_trans_value
-
-#以下並列処理
-div_only_h_trans = divide_lists(only_h_trans,proc)
-data = [[i,ind_pair_goods_pair_value_list] for i in div_only_h_trans ]
-p = Pool(proc)
-temp_result = p.map(make_only_h_tarans_value, data)
-p.terminate()
-p.join()
-
-only_h_trans_value = []
-#並列処理したものを展開
-for i in temp_result:
-    only_h_trans_value.extend(i)
-
-del temp_result, data
-gc.collect()
+only_h_trans_value = assosiate2.multi_make_only_h_trans_value(only_h_trans,ind_pair_goods_pair_value_list)
 
 only_h_trans_value_data = pd.DataFrame(only_h_trans_value, columns = columns)
 
@@ -263,45 +103,13 @@ output_data = output_data.append(only_h_trans_value_data)
 del only_h_trans_value_data
 gc.collect()
 
-
-print(len(output_data))
-
 #重複した組み合わせを削除
 print('重複組合せの統合中')
 output_data = output_data.sort_values(by = ["Input_area","Output_area","Input_industory","Output_industry"],ascending=True)
 output_data = output_data.reset_index(drop=True)
 
-ta = temp_Input_area = output_data["Input_area"][0]
-tb = temp_Output_area = output_data["Output_area"][0]
-tc = temp_Input_industory = output_data["Input_industory"][0]
-td = temp_Output_industory = output_data["Output_industry"][0]
-count = 0
-temp_length = len(list(output_data["Input_area"]))
 
-for  num  in range(temp_length):
-    print('now integrating same values...',num,'/', temp_length,'\r', end='')
-    sys.stdout.flush()
-    if num != 0:
-        tA = output_data["Input_area"][num]
-        tB = output_data["Output_area"][num]
-        tC = output_data["Input_industory"][num]
-        tD = output_data["Output_industry"][num]
-        temp_value = output_data["Value"][num]
-        if ta == tA and tb == tB and tc == tC and td == tD:
-            output_data.loc[count,"Value"] += temp_value
-            output_data = output_data.drop(num)
-        else:
-            ta = tA
-            tb = tB
-            tc = tC 
-            td = tD
-            count = num
-            
-del ta, tb, tc, td,num
-gc.collect()
-
-
-output_data = output_data.reset_index(drop=True)
+output_data = assosiate2.integrate(output_data)
 print('output.csvを出力中....')
 output_data.to_csv('../output.csv')
 temp_length = len(list(output_data["Input_area"]))
