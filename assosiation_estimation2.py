@@ -127,8 +127,8 @@ def integrate(output_ndarray):
     t4 = output_ndarray[0,4] #temp value
     t5 = output_ndarray[0,5] #temp ind pair
     temp_length = len(list(output_ndarray[:,0]))
-    result = []
-    out_line = [t0,t1,t2,t3,t4,t5]
+    out_line = [t0,t1,t2,t3,t4,t5]      
+    result = [out_line]
     for  num  in range(temp_length):
         #経過出力
         print('now integrating same values...',num,'/', temp_length,'\r', end='')
@@ -156,6 +156,7 @@ def integrate(output_ndarray):
             if num + 1 == temp_length:
                 result.append(out_line)
     
+    result.pop(0)
     return result
 
 print('now, data importintg....')
